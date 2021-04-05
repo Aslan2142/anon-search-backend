@@ -1,0 +1,13 @@
+{
+  "name": "anon-search-backend",
+  "version": "0.1.0",
+  "description": "Anonymous Search Engine",
+  "main": "index.js",
+  "author": "Aslan2142",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "express": "^4.17.1",
+    "node-html-parser": "^3.1.2"
+  }
+}
