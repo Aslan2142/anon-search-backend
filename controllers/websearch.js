@@ -13,67 +13,82 @@ function setup(server, endpoint) {
 
         axios.request({
             method: 'GET',
-            url: 'https://www.google.com/search?q=' + request.query.q,
+            url: 'https://www.google.com/search?q=' + encodeURI(request.query.q),
             responseType: 'arraybuffer',
             reponseEncoding: 'binary'
         }).then(googleResponse => {
-            let root = parse(googleResponse.data.toString('latin1'));
-            response.send(process(root));
+            let data = googleResponse.data.toString('latin1');
+            let root = parse(data);
+            response.send(process(root, data));
         });
     });
 
 }
 
-function process(root) {
+function process(root, source) {
     let processed = {
-        imageContainer: null,
+        imageContainer: {
+            title: '',
+            description: '',
+            images: []
+        },
         results: []
     };
 
     let containers = root.querySelectorAll('.ZINbbc.xpd.O9g5cc.uUPGi');
 
     containers.forEach(container => {
-        if (container.childNodes.length == 4) {
-            let title = container.querySelector('.BNeawe.deIvCb.AP7Wnd').firstChild.rawText;
+        try {
+            if (container.querySelector('.Q0HXG') != undefined || container.querySelector('.xpc') != undefined) {
+                let title = container.querySelector('.BNeawe.deIvCb.AP7Wnd').firstChild.rawText;
+    
+                let description = container.querySelectorAll('.BNeawe.s3v9rd.AP7Wnd')[1].firstChild.rawText;
+    
+                processed.imageContainer = {
+                    title,
+                    description,
+                    images: []
+                }
 
-            let description = container.querySelectorAll('.BNeawe.s3v9rd.AP7Wnd')[1].firstChild.rawText;
-
-            processed.imageContainer = {
-                title,
-                description,
-                images: []
-            }
-
-            container.querySelectorAll('.BVG0Nb').forEach(element => {
-                let link = element.attrs.href;
-                link = link.slice(15, link.indexOf('&'))
-
-                let thumbnail = link; //TO-DO - Generate a real thumbnail
-
-                processed.imageContainer.images.push({
-                    link,
-                    thumbnail
+                container.querySelectorAll('.BVG0Nb').forEach(element => {
+                    let link = element.attrs.href;
+                    link = link.slice(15, link.indexOf('&'))
+                    link = link.replaceAll('&amp;', '&');
+    
+                    let thumbnail = "";
+                    let thumbnailIndex = source.lastIndexOf(element.querySelector('.WddBJd').attrs.id + '\'');
+                    let count = 0;
+                    while (count < 3) {
+                        if (source.charAt(--thumbnailIndex) == '\'') count++;
+                    }
+                    while (true) {
+                        let char = source.charAt(++thumbnailIndex);
+                        if (char == '\'' || char == '\\') break;
+                        thumbnail += char;
+                    }
+    
+                    processed.imageContainer.images.push({
+                        link,
+                        thumbnail
+                    });
                 });
-            });
-        }
-
-        if (container.childNodes.length == 3) {
-            if (!container.firstChild.rawAttrs.includes('kCrYT')) return;
-            if (container.querySelector('.BNeawe.vvjwJb.AP7Wnd') == null) return;
-            
-            let title = container.querySelector('.BNeawe.vvjwJb.AP7Wnd').firstChild.rawText;
-            
-            let link = container.firstChild.firstChild.attrs.href;
-            link = link.slice(7, link.indexOf('&'))
-
-            let description = container.querySelector('.BNeawe.s3v9rd.AP7Wnd').firstChild.rawText;
-
-            processed.results.push({
-                title,
-                link,
-                description
-            });
-        }
+            }
+    
+            if (container.childNodes.length == 3 && container.querySelector('.x54gtf') != undefined) {
+                let title = container.querySelector('.BNeawe.vvjwJb.AP7Wnd').firstChild.rawText;
+                
+                let link = container.firstChild.firstChild.attrs.href;
+                link = link.slice(7, link.indexOf('&'))
+    
+                let description = container.querySelector('.BNeawe.s3v9rd.AP7Wnd').firstChild.rawText;
+    
+                processed.results.push({
+                    title,
+                    link,
+                    description
+                });
+            }
+        } catch {}
     });
 
     return processed;
