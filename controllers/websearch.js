@@ -1,25 +1,41 @@
+const config = require('../config.json');
+
+const fs = require('fs');
 const axios = require('axios');
 const parse = require('node-html-parser').parse;
 
 function setup(server, endpoint) {
 
     server.get(endpoint, (request, response) => {
-        if (request.query.q == undefined) {
+        let query = request.query.q;
+        if (query == undefined) {
             response.send({
                 error: 'no query'
             });
             return;
         }
 
+        let time = new Date().getTime();
+        let cachePath = 'cache/' + query + '.json';
+        if (fs.existsSync(cachePath)) {
+            let cache = JSON.parse(fs.readFileSync(cachePath));
+            if (cache.createdAt + (config.cacheTimeToLive * 1000) >= time) {
+                response.send(cache);
+                return;
+            }
+        }
+
         axios.request({
             method: 'GET',
-            url: 'https://www.google.com/search?q=' + encodeURI(request.query.q),
+            url: 'https://www.google.com/search?q=' + encodeURI(query),
             responseType: 'arraybuffer',
             reponseEncoding: 'binary'
         }).then(googleResponse => {
             let data = googleResponse.data.toString('latin1');
             let root = parse(data);
-            response.send(process(root, data));
+            let processedData = process(root, data);
+            fs.writeFile('cache/' + query + '.json', JSON.stringify(processedData), err => { if (err) console.log(err.stack); });
+            response.send(processedData);
         });
     });
 
@@ -27,7 +43,8 @@ function setup(server, endpoint) {
 
 function process(root, source) {
     let processed = {
-        imageContainer: {
+        createdAt: new Date().getTime(),
+        quickResult: {
             title: '',
             description: '',
             images: []
@@ -44,7 +61,7 @@ function process(root, source) {
     
                 let description = container.querySelectorAll('.BNeawe.s3v9rd.AP7Wnd')[1].firstChild.rawText;
     
-                processed.imageContainer = {
+                processed.quickResult = {
                     title,
                     description,
                     images: []
@@ -67,7 +84,7 @@ function process(root, source) {
                         thumbnail += char;
                     }
     
-                    processed.imageContainer.images.push({
+                    processed.quickResult.images.push({
                         link,
                         thumbnail
                     });

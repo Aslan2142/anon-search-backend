@@ -1,7 +1,12 @@
 const config = require('./config.json');
 
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
+
+if (!fs.existsSync('cache')) {
+    fs.mkdirSync('cache');
+}
 
 let server = express();
 server.use(cors());
