@@ -1,6 +1,6 @@
 {
   "name": "anon-search-backend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Anonymous Search Engine",
   "main": "index.js",
   "author": "Aslan2142",

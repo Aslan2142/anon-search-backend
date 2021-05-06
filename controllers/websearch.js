@@ -20,28 +20,32 @@ function setup(server, endpoint) {
         let cachePath = 'cache/' + query + '.json';
         if (fs.existsSync(cachePath)) {
             let cache = JSON.parse(fs.readFileSync(cachePath));
-            if (cache.createdAt + (config.cacheTimeToLive * 1000) >= time) {
-                response.send(cache);
-                return;
-            } else {
-                fs.unlink(cachePath, err => { if (err) console.log(err.stack); });
+            response.send(cache);
+            if (cache.createdAt + (config.cacheTimeToLive * 1000) < time) {
+                downloadQuery(query, null);
             }
+            return
         }
 
-        axios.request({
-            method: 'GET',
-            url: 'https://www.google.com/search?q=' + encodeURI(query),
-            responseType: 'arraybuffer',
-            reponseEncoding: 'binary'
-        }).then(googleResponse => {
-            let data = googleResponse.data.toString('latin1');
-            let root = parse(data);
-            let processedData = process(root, data);
-            fs.writeFile('cache/' + query + '.json', JSON.stringify(processedData), err => { if (err) console.log(err.stack); });
-            response.send(processedData);
-        });
+        downloadQuery(query, response);
     });
 
+}
+
+function downloadQuery(query, response) {
+    axios.request({
+        method: 'GET',
+        url: 'https://www.google.com/search?q=' + encodeURI(query),
+        responseType: 'arraybuffer',
+        reponseEncoding: 'binary'
+    }).then(googleResponse => {
+        let data = googleResponse.data.toString('latin1');
+        let root = parse(data);
+        let processedData = process(root, data);
+        fs.writeFile('cache/' + query + '.json', JSON.stringify(processedData), err => { if (err) console.log(err.stack); });
+        
+        if (response != null) response.send(processedData);
+    });
 }
 
 function process(root, source) {
