@@ -100,8 +100,8 @@ function process(root, source) {
                     });
                 });
             }
-    
-            if (container.childNodes.length == 3 && container.querySelector('.x54gtf') != undefined) {
+
+            if (container.childNodes.length == 2 && container.querySelector('.kCrYT') != undefined) {
                 let title = container.querySelector('.BNeawe.vvjwJb.AP7Wnd').firstChild.rawText;
                 title = htmlDecode(title);
                 
